@@ -2,7 +2,31 @@ import sys
 from io import BytesIO
 from find_spn_param import find_spn
 import requests
-from PIL import Image
+from PIL import Image, ImageDraw, ImageFont
+import math
+
+
+def lonlat_distance(a, b):
+    degree_to_meters_factor = 111 * 1000  # 111 километров в метрах
+    a_lon, a_lat = a
+    b_lon, b_lat = b
+    a_lon = float(a_lon)
+    a_lat = float(a_lat)
+    b_lat = float(b_lat)
+    b_lon = float(b_lon)
+
+    # Берем среднюю по широте точку и считаем коэффициент для нее.
+    radians_lattitude = math.radians((a_lat + b_lat) / 2.)
+    lat_lon_factor = math.cos(radians_lattitude)
+
+    # Вычисляем смещения в метрах по вертикали и горизонтали.
+    dx = abs(a_lon - b_lon) * degree_to_meters_factor * lat_lon_factor
+    dy = abs(a_lat - b_lat) * degree_to_meters_factor
+
+    # Вычисляем расстояние между точками.
+    distance = math.sqrt(dx * dx + dy * dy)
+
+    return distance
 
 
 # Пусть наше приложение предполагает запуск:
@@ -47,12 +71,12 @@ search_params = {
 
 response = requests.get(search_api_server, params=search_params)
 if not response:
-    #...
+    # ...
     pass
 
 # Преобразуем ответ в json-объект
 json_response = response.json()
-
+chem = json_response["features"][0]["properties"]
 # Получаем первую найденную организацию.
 organization = json_response["features"][0]
 # Название организации.
@@ -76,5 +100,29 @@ map_api_server = "http://static-maps.yandex.ru/1.x/"
 # ... и выполняем запрос
 response = requests.get(map_api_server, params=map_params)
 
-Image.open(BytesIO(
-    response.content)).show()
+im = Image.open(BytesIO(
+    response.content)).convert('RGB')
+draw = ImageDraw.Draw(im)
+draw.rectangle((0, int(im.size[1] * 0.9), im.size[0], im.size[0]), fill='white')
+font = ImageFont.truetype('Marta_Decor_Two.ttf', size=int(im.size[1] * 0.04))
+draw.text(
+    (5, int(im.size[1] * 0.91)),
+    chem['description'],
+    font=font,
+    fill='#1C0606')
+draw.text(
+    (5, int(im.size[1] * 0.96)),
+    chem['CompanyMetaData']['Hours']['text'],
+    font=font,
+    fill='#1C0606')
+draw.text(
+    (int(im.size[0] * 0.5), int(im.size[1] * 0.91)),
+    chem['name'],
+    font=font,
+    fill='#1C0606')
+draw.text(
+    (int(im.size[0] * 0.5), int(im.size[1] * 0.96)),
+    str(int(lonlat_distance([float(toponym_longitude), float(toponym_lattitude)], chem['boundedBy'][0]))) + ' m',
+    font=font,
+    fill='#1C0606')
+im.show()
