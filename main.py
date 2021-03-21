@@ -68,9 +68,6 @@ deltax, deltay = find_spn(toponym_to_find)
 
 # Собираем параметры для запроса к StaticMapsAPI:
 map_params = {
-    "ll": ",".join([toponym_longitude, toponym_lattitude]),
-    "spn": ",".join([str(max([float(deltax), float(toponym_longitude) - float(point[0])])),
-                     str(max([float(deltay), float(toponym_lattitude) - float(point[1])]))]),
     "l": "map",
     'pt': ",".join([toponym_longitude, toponym_lattitude]) + ',ya_ru~' + "{0},pm2dgl".format(org_point)
 }
